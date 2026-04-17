@@ -4,6 +4,7 @@
 // ================= NODE =================
 struct Node{
     int data;
+    int freq;   // frequency of duplicate values
     struct Node *left;
     struct Node *right;
 };
@@ -12,6 +13,7 @@ struct Node{
 struct Node *createNode(int data){
     struct Node *node = (struct Node *)malloc(sizeof(struct Node));
     node->data = data;
+    node->freq = 1;   // initially 1
     node->left = node->right = NULL;
     return node;
 }
@@ -22,8 +24,12 @@ struct Node *insert(struct Node *root, int data){
 
     if(data < root->data)
         root->left = insert(root->left, data);
-    else
+
+    else if(data > root->data)
         root->right = insert(root->right, data);
+
+    else
+        root->freq++;   // duplicate found
 
     return root;
 }
@@ -64,11 +70,20 @@ struct Node* deleteNode(struct Node *root, int key){
         root->right = deleteNode(root->right, key);
     }
     else{
+        // found node
+
+        // 🔥 if freq > 1 → just decrease
+        if(root->freq > 1){
+            root->freq--;
+            return root;
+        }
+
         // case 1: no child
         if(root->left == NULL && root->right == NULL){
             free(root);
             return NULL;
         }
+
         // case 2: one child
         else if(root->left == NULL){
             struct Node *temp = root->right;
@@ -80,9 +95,15 @@ struct Node* deleteNode(struct Node *root, int key){
             free(root);
             return temp;
         }
+
         // case 3: two children
         struct Node *temp = findMin(root->right);
+
         root->data = temp->data;
+        root->freq = temp->freq;
+
+        // delete one occurrence from right subtree
+        temp->freq = 1;
         root->right = deleteNode(root->right, temp->data);
     }
     return root;
@@ -101,7 +122,7 @@ void inorderStack(struct Node *root){
         }
 
         current = stack[top--];
-        printf("%d ", current->data);
+        printf("%d(%d) ", current->data, current->freq);
 
         current = current->right;
     }
@@ -118,7 +139,7 @@ void preorderStack(struct Node *root){
 
     while(top != -1){
         struct Node *current = stack[top--];
-        printf("%d ", current->data);
+        printf("%d(%d) ", current->data, current->freq);
 
         if(current->right)
             stack[++top] = current->right;
@@ -150,7 +171,8 @@ void postorderStack(struct Node *root){
     }
 
     while(top2 != -1){
-        printf("%d ", stack2[top2--]->data);
+        struct Node *temp = stack2[top2--];
+        printf("%d(%d) ", temp->data, temp->freq);
     }
 }
 
@@ -182,7 +204,7 @@ void levelorder(struct Node *root){
 
     while(!isEmpty()){
         struct Node *current = dequeue();
-        printf("%d ", current->data);
+        printf("%d(%d) ", current->data, current->freq);
 
         if(current->left) enqueue(current->left);
         if(current->right) enqueue(current->right);
@@ -191,7 +213,7 @@ void levelorder(struct Node *root){
 
 // ================= MAIN =================
 int main(){
-    int A[] = {5,3,7,2,4,6,8};
+    int A[] = {5,3,7,2,4,6,8,5,3,5}; // duplicates included
     int size = sizeof(A)/sizeof(A[0]);
 
     struct Node *root = NULL;
@@ -200,13 +222,13 @@ int main(){
         root = insert(root, A[i]);
     }
 
-    printf("Inorder (Stack): ");
+    printf("Inorder: ");
     inorderStack(root);
 
-    printf("\nPreorder (Stack): ");
+    printf("\nPreorder: ");
     preorderStack(root);
 
-    printf("\nPostorder (Stack): ");
+    printf("\nPostorder: ");
     postorderStack(root);
 
     printf("\nLevel Order: ");
